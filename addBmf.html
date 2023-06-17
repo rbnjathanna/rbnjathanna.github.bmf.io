@@ -1,0 +1,267 @@
+<html>
+    <head>
+        <title>BMF Points</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="./styles/bootstrap.min.css">
+        <link rel="stylesheet" href="./styles/common.css">
+        <script src="./scripts/jquery.min.js"></script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCex-4bQ2wYJnDV-258CN-Vs7twaUOin_c&libraries=places&callback=initMap&v=weekly" defer></script>
+        <script src="./scripts/popper.min.js"></script>
+        <script src="./scripts/bootstrap.min.js"></script>
+        <script src="./scripts/common.js"></script>
+
+        <script type="text/javascript" src="https://unpkg.com/imagekit-javascript/dist/imagekit.min.js"></script>
+
+        <style>
+            .bmf-pt-dtls {
+                display: block;
+                padding: 1rem;
+            }
+            .bmf-pt-locate{
+                display: none;
+            }
+            #document_upload {
+                padding: 11px;
+            }
+            #bmf_address {
+                padding: 10px;
+            }
+            .bmf-pt-locate {
+                padding: 12px;
+            }           
+        </style>
+
+        <script>
+            var user_id = localStorage.getItem("user_id");
+            if(!user_id){
+                window.location.href="index.html";
+            }
+            const api_key = common.api_key;
+            var imagekit = new ImageKit({
+                publicKey: common.public_key,
+                urlEndpoint: common.end_point,
+                authenticationEndpoint: common.api_url+"signature"
+            });     
+            var images, bmf_pt_id, bmfImages, fileuploader = 0;
+
+            function initAutocomplete() {
+                var input = document.getElementById('bmf_address');
+                var autocomplete = new google.maps.places.Autocomplete(input);
+                autocomplete.setFields(['address_components', 'geometry', 'name']);
+                autocomplete.addListener('place_changed', function() {
+                    var place = autocomplete.getPlace();
+                    if (!place.geometry) {
+                        console.log("Returned place contains no geometry");
+                        return;
+                    }
+                    console.log(place.geometry.location.lat());
+                    console.log(place.geometry.location.lng());
+                    $("#lat").val(place.geometry.location.lat());
+                    $("#lng").val(place.geometry.location.lng());
+                });
+            }
+
+            function nextPage() {
+                if(validation("bmf-pt-dtl-1")){
+                    let dataObj = {
+                        bmf_name: $("#bmf_name").val(),
+                        bmf_landmark: $("#bmf_landmark").val(),
+                        bmf_pr_name: $("#bmf_pr_name").val(),
+                        bmf_pr_number: $("#bmf_pr_number").val(),
+                        bmf_owner_name: $("#bmf_owner_name").val(),
+                        bmf_owner_number: $("#bmf_owner_number").val(),
+                        bmf_address: $("#bmf_address").val(),
+                        lat: $("#lat").val(),
+                        lng: $("#lng").val()
+                    }
+                    $.ajax({
+                        type: 'POST',
+                        url: common.api_url+'point/admin/bmf/add',
+                        contentType: 'application/json',
+                        data: JSON.stringify(dataObj),
+                        dataType: 'json',
+                        success: function(response) {
+                            if(response.code == 200){
+                                bmf_pt_id = response.result;
+                                $(".bmf-pt-dtls").hide();
+                                $(".bmf-pt-locate").show();
+                            }else{
+                                alert(response.message);
+                            }
+                        }
+                    })
+                }
+            }
+
+            function selectImage(e) {
+                images = e.files;
+            }
+
+            function selectBMFImage(e) {
+                bmfImages = e.files;
+            }
+
+            function documentUpload(e){
+                $("#document_submit").addClass("btn-deactivate");
+                e.preventDefault();
+                var imgData = [], ext, fileInfo = [];
+                for(var i=0; i< images.length; i++){
+                    ext = images[i].name.split('.').pop();
+                    imagekit.upload({
+                        file: images[i],
+                        fileName: "bmf_doc_"+bmf_pt_id+"_"+i+"."+ext,
+                        useUniqueFileName: false
+                    }, function (err, result) {
+                        fileInfo.push(result.fileId);
+                        if (err) {
+                            alert("Error in file upload. Check console logs for error response");
+                            console.log(err);
+                        } else {
+                            fileuploader++;
+                            if(fileuploader == images.length){
+                                for(var i=0; i< images.length; i++){
+                                    let ext = images[i].name.split('.').pop()
+                                    imgData.push({
+                                        bmf_id: bmf_pt_id,
+                                        docs: "bmf_doc_"+bmf_pt_id+"_"+i+"."+ext,
+                                        added_by: "1",
+                                        status: "Y",
+                                        fileId: fileInfo[i]
+                                    })
+                                }
+                                $.ajax({
+                                    type: 'POST',
+                                    url: common.api_url+'point/admin/bmf/addBMFDocs',
+                                    contentType: 'application/json',
+                                    data: JSON.stringify(imgData),
+                                    dataType: 'json',
+                                    success: function(response) {
+                                        bmfImgUpload();
+                                    },
+                                    error: function(res) {
+                                        $("#document_submit").removeClass("btn-deactivate");
+                                    }
+                                })
+                            }
+                        }
+                    })
+                }
+            }
+
+            function bmfImgUpload(){
+                var imgData = [], ext, fileInfo = [], fileuploader = 0;
+                for(var i=0; i< bmfImages.length; i++){
+                    ext = bmfImages[i].name.split('.').pop();
+                    imagekit.upload({
+                        file: bmfImages[i],
+                        fileName: "bmf_img_"+bmf_pt_id+"_"+i+"."+ext,
+                        useUniqueFileName: false
+                    }, function (err, result) {
+                        fileInfo.push(result.fileId);
+                        if (err) {
+                            alert("Error in file upload. Check console logs for error response");
+                            console.log(err);
+                        } else {
+                            fileuploader++;
+                            if(fileuploader == bmfImages.length){
+                                for(var i=0; i< bmfImages.length; i++){
+                                    let ext = bmfImages[i].name.split('.').pop()
+                                    imgData.push({
+                                        bmf_id: bmf_pt_id,
+                                        images: "bmf_img_"+bmf_pt_id+"_"+i+"."+ext,
+                                        added_by: "1",
+                                        status: "Y",
+                                        fileId: fileInfo[i]
+                                    })
+                                }
+                                $.ajax({
+                                    type: 'POST',
+                                    url: common.api_url+'point/admin/bmf/addBMFImages',
+                                    contentType: 'application/json',
+                                    data: JSON.stringify(imgData),
+                                    dataType: 'json',
+                                    success: function(response) {
+                                        $("#document_submit").removeClass("btn-deactivate");
+                                        alert("File uploaded successfully");
+                                        window.location.href = "bmfList.html";
+                                    },
+                                    error: function(res) {
+                                        $("#document_submit").removeClass("btn-deactivate");
+                                    }
+                                })
+                            }
+                        }
+                    })
+                }
+            }
+
+            $(document).ready(function(){
+                initAutocomplete();
+            })
+        </script>
+    </head>
+    <body>
+        <div id="bmf-pt-dtl-1" class='bmf-pt-dtls'>
+            <div class="form-group clearfix">
+                <a class='btn btn-primary float-right' href="bmfList.html"><- Back to the List</a>
+            </div>
+            <div class="form-group mt-3">
+                <label for="bmf_name">BMF Name</label>
+                <input type="text" class="form-control required text" id="bmf_name" name="bmf_name" />
+                <span class="error-msg">BMF Name is required</span>
+            </div>
+            <div class="form-group">
+                <label for="bmf_landmark">BMF Landmark</label>
+                <input type="text" class="form-control required text" id="bmf_landmark" name="bmf_landmark" />
+                <span class="error-msg">BMF Landmark is required</span>
+            </div>
+            <div class="form-group">
+                <label for="bmf_pr_name">BMF PR Name</label>
+                <input type="text" class="form-control required text" id="bmf_pr_name" name="bmf_pr_name" />
+                <span class="error-msg">PR Name is required</span>
+            </div>
+            <div class="form-group">
+                <label for="bmf_pr_number">BMF PR Number</label>
+                <input type="text" class="form-control required number" id="bmf_pr_number" name="bmf_pr_number" />
+                <span class="error-msg">Valid PR Number is required</span>
+            </div>
+            <div class="form-group">
+                <label for="bmf_owner_name">BMF Owner Name</label>
+                <input type="text" class="form-control required text" id="bmf_owner_name" name="bmf_owner_name" />
+                <span class="error-msg">Owner Name is required</span>
+            </div>
+            <div class="form-group">
+                <label for="bmf_contact_number">BMF Owner Number</label>
+                <input type="text" class="form-control required number" id="bmf_owner_number" name="bmf_owner_number" />
+                <span class="error-msg">Valid Owner Number is required</span>
+            </div>
+            <div class="form-group" style="position: relative;">
+                <label for="bmf_address">BMF Point Address Select</label>
+                <input id="bmf_address" name="bmf_address" class="form-control required text" type="text" placeholder="Autocomplete Widget">
+                <span class="error-msg">BMF Address is required</span>
+                <input type="hidden" id="lat" name="lat" />
+                <input type="hidden" id="lng" name="lng" />
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary w-100 p-2 mt-2" onclick="nextPage(event)">Next</button>
+            </div>
+        </div>
+        <div class='bmf-pt-locate'>
+            <form action="#" onsubmit="documentUpload(event)">
+                <div class="form-group">
+                    <label for="document_upload">Document Upload</label>
+                    <input type="file" class="form-control" name="document_upload" id="document_upload" onchange="selectImage(this)" multiple />
+                </div>
+                <div class="form-group">
+                    <label for="bmf_pt_upload">BMF Point Images Upload</label>
+                    <input type="file" class="form-control" name="bmf_pt_upload" id="bmf_pt_upload" onchange="selectBMFImage(this)" multiple />
+                </div>
+                <div class="form-group">
+                    <label for="document_submit"> &nbsp; </label>
+                    <button class="btn btn-success" id="document_submit">Submit Document</button>
+                </div>
+            </form>
+        </div>
+    </body>
+</html>

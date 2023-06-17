@@ -1,0 +1,279 @@
+<html>
+    <head>
+        <title>BMF List</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="./styles/bootstrap.min.css">
+        <link rel="stylesheet" href="./styles/common.css">
+        <script src="./scripts/jquery.min.js"></script>
+        <script src="./scripts/popper.min.js"></script>
+        <script src="./scripts/bootstrap.min.js"></script>
+        <script src="./scripts/common.js"></script>
+
+        <script type="text/javascript" src="https://unpkg.com/imagekit-javascript/dist/imagekit.min.js"></script>
+
+        <style>
+            .bmf-img {
+                border-top-left-radius: 0.25rem;
+                border-top-right-radius: 0.25rem;
+            }
+            .card-body {
+                padding: 0.7rem;
+            }
+            .card-body .btn {
+                margin-right: 5px;
+            }
+            .badge {
+                display: none;
+            }
+            ul {
+                padding: 0;
+            }
+            ul li {
+                list-style-type: none;
+            }
+            .bmf_other_dtls {
+                width: 49%;
+                padding: 7px;
+                border: 1px solid #e0e0e0;
+                display: inline-block;
+            }
+            #bmf_pt_name {
+                margin: 15px 0 10px;
+            }
+            #bmf_address, #bmf_address{
+                margin: 15px 0;
+            }
+            #bmf_pt_dtls {
+                padding: 15px;
+            }
+            .carousel-item img {
+                width: 100%;
+                height: 300px;
+            }
+            header {
+                background-color: #47bbec;
+                padding: 7px;
+            }
+            #company-logo {
+                width: 50px;
+            }
+            #logout-icon {
+                margin: 13px 7px;
+            }
+            .btn-primary, .btn-primary:focus, .btn-primary:active {
+                color: #fff;
+                background-color: #47bbec!important;
+                border-color: #47bbec!important;
+            }
+            .form-control:focus, .form-control {
+                outline: 0;
+                color: #777!important;
+                box-shadow: none!important;
+            }
+            #logout-icon {
+                width: 25px!important;
+            }
+        </style>
+        <script>
+            var arrObj = [];
+            var user_id = localStorage.getItem("user_id");
+            if(!user_id){
+                window.location.href="index.html";
+            }
+            function getAllBmf(){
+                $.ajax({
+                    type: 'GET',
+                    url: common.api_url+'point/admin/bmf/getAll',
+                    success: function(response){
+                        arrObj = response.data;
+                        for(var i=0; i<arrObj.length; i++){
+                            let el = `<div class="card">
+                                <div class='col-12 col-sm-12 col-md-12 float-left'>
+                                    <div class="row">
+                                        <div class="col-md-12 p-0">
+                                            <img src="https://ik.imagekit.io/i80pdhj15/${arrObj[i].img_arr[0].images}" class="bmf-img w-100" />
+                                        </div>
+                                        <div class="col-md-12 p-0">
+                                            <div class="card-body">
+                                                <h5>${arrObj[i].bmf_name}</h5>
+                                                <span class="badge badge-success" class="status_enable"></span>
+                                                <span class="badge badge-danger" class="status_disable"></span>
+                                                <p>${arrObj[i].bmf_address}</p>
+                                                <div class="bmf-list-action-btn">
+                                                    <button class="btn btn-primary" onclick="getBmfDtls(${arrObj[i].bmf_id})">View</button>
+                                                    <button class="btn btn-success" onclick="editBmfDtls(${arrObj[i].bmf_id})">Edit</button>`;
+                            if (arrObj[i].status == "Y") {
+                                el = el +`<button class="btn btn-danger" onclick="disableBmfDtls(${arrObj[i].bmf_id}, 'N')">Disable</button>`;
+                            } else {
+                                el = el +`<button class="btn btn-info" onclick="disableBmfDtls(${arrObj[i].bmf_id}, 'Y')">Enable</button>`;
+                            }      
+                            el = el + `</div> </div> </div> </div> </div> </div>`;
+                            $("#card-div").append(el);
+                        }
+                    }
+                })
+            }
+
+            function editBmfDtls(id){
+                localStorage.setItem("bmf_id", id);
+                window.location.href = 'editBmf.html';
+            }
+
+            function getBmfDtls(id){
+                $("#bmf-list").hide();
+                $("#bmf-details").show();
+                /* $.ajax({
+                    type: 'GET',
+                    url: common.api_url+'point/admin/bmf/get/'+id,
+                    contentType: 'application/json',
+                    success: function(response){
+                        $("#bmf_pt_name").text(response.data.bmf_name);
+                        $("#bmf_address").text(response.data.bmf_address+", "+response.data.bmf_landmark);
+                        $("#pr_name").text(response.data.bmf_pr_name);
+                        $("#pr_number").text(response.data.bmf_pr_number);
+                        $("#owner_name").text(response.data.bmf_owner_name);
+                        $("#owner_number").text(response.data.bmf_owner_number);
+                        if(response.data.status == 'Y'){
+                            $("#status_enable").show();
+                            $("#status_enable").text("Active");
+                        }else{
+                            $("#status_disable").show();
+                            $("#status_disable").text("Disabled");
+                        }
+                        let resp = response.data.img_arr;
+                        for(var i=0; i<resp.length; i++){
+                            if(i=0){
+                                $(".carousel-inner").append(`<div class="carousel-item active">
+                                    <img src="https://ik.imagekit.io/i80pdhj15/${resp[i].images}" alt="BMF Pts">
+                                </div>`)
+                            }else{
+                                $(".carousel-inner").append(`<div class="carousel-item">
+                                    <img src="https://ik.imagekit.io/i80pdhj15/${resp[i].images}" alt="BMF Pts">
+                                </div>`)
+                            }
+                        }
+                    }
+                }) */
+                var obj = arrObj.filter(function(item){
+                    return item.bmf_id == id;
+                });
+                $("#bmf_pt_name").text(obj[0].bmf_name);
+                $("#bmf_address").text(obj[0].bmf_address+", "+obj[0].bmf_landmark);
+                $("#pr_name").text(obj[0].bmf_pr_name);
+                $("#pr_number").text(obj[0].bmf_pr_number);
+                $("#owner_name").text(obj[0].bmf_owner_name);
+                $("#owner_number").text(obj[0].bmf_owner_number);
+                if(obj[0].status == 'Y'){
+                    $(".status_enable").show();
+                    $(".status_enable").text("Active");
+                }else{
+                    $(".status_disable").show();
+                    $(".status_disable").text("Disabled");
+                }
+                let resp = obj[0].img_arr;
+                for (var i=0; i<resp.length; i++) {
+                    if(i==0){
+                        $(".carousel-inner").append(`<div class="carousel-item active">
+                            <img src="https://ik.imagekit.io/i80pdhj15/${resp[i].images}" alt="BMF Pts">
+                        </div>`)
+                    }else{
+                        $(".carousel-inner").append(`<div class="carousel-item">
+                            <img src="https://ik.imagekit.io/i80pdhj15/${resp[i].images}" alt="BMF Pts">
+                        </div>`)
+                    }
+                }
+            }
+
+            function disableBmfDtls(id, status) {
+                let dataObj = {
+                    bmf_id: id,
+                    status: status
+                }
+                $.ajax({
+                    type: 'POST',
+                    url: common.api_url+'point/admin/bmf/status',
+                    contentType: 'application/json',
+                    data: JSON.stringify(dataObj),
+                    dataType: 'json',
+                    success: function(response) {
+                        if(response.code == 200){
+                            alert(response.message);
+                            location.reload();
+                        }else{
+                            alert(response.message);
+                        }
+                    }
+                })
+            }
+
+            function displayList() {
+                $("#bmf-details").hide();
+                $("#bmf-list").show();
+            }
+
+            function logout() {
+                localStorage.removeItem("user_id");
+                window.location.href = "index.html";
+            }
+
+            $(document).ready(function(){
+                getAllBmf();
+            })
+        </script>
+    </head>
+    <body>
+        <header class="clearfix">
+            <img src="./images/logo.jpg" id="company-logo" class="float-left" />
+            <img src="./images/logout.svg" id="logout-icon" class="float-right" onclick="logout()" />
+        </header>
+        <div class="container my-2 p-0">
+            <div id='bmf-list' class='p-2'>
+                <div class="form-group clearfix">
+                    <a class='btn btn-primary float-right' href="addBmf.html">+ Add BMF Point</a>
+                </div>
+                <div id="card-div"> </div>
+            </div>
+            <div id='bmf-details' style="display:none;">
+                <div class="form-group clearfix">
+                    <button class='btn btn-primary float-right' onclick="displayList()"><- Back to the List</a>
+                </div>
+                <div id="bmf_pts_img_carousel" class="carousel slide" data-ride="carousel">
+                    <div class="carousel-inner"> </div>
+
+                    <a class="carousel-control-prev" href="#bmf_pts_img_carousel" data-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </a>
+                    <a class="carousel-control-next" href="#bmf_pts_img_carousel" data-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </a>                  
+                </div>
+                <div id="bmf_pt_dtls">
+                    <h4 id="bmf_pt_name"></h4>
+                    <span class="badge badge-success" class="status_enable"></span>
+                    <span class="badge badge-danger" class="status_disable"></span>
+                    <p id="bmf_address"></p>
+                    
+                    <ul>
+                        <li>
+                            <span class="bmf_other_dtls">BMF PR Name</span>
+                            <span class="bmf_other_dtls" id="pr_name"> </span>
+                        </li>
+                        <li>
+                            <span class="bmf_other_dtls">BMF PR No.</span>
+                            <span class="bmf_other_dtls" id="pr_number"> </span>
+                        </li>
+                        <li>
+                            <span class="bmf_other_dtls">BMF Owner Name</span>
+                            <span class="bmf_other_dtls" id="owner_name"> </span>
+                        </li>
+                        <li>
+                            <span class="bmf_other_dtls">BMF Owner No.</span>
+                            <span class="bmf_other_dtls" id="owner_number"> </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

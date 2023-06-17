@@ -1,0 +1,414 @@
+<html>
+    <head>
+        <title>BMF Points</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="./styles/bootstrap.min.css">
+        <link rel="stylesheet" href="./styles/common.css">
+        <script src="./scripts/jquery.min.js"></script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCex-4bQ2wYJnDV-258CN-Vs7twaUOin_c&libraries=places&callback=initMap&v=weekly" defer></script>
+        <script src="./scripts/popper.min.js"></script>
+        <script src="./scripts/bootstrap.min.js"></script>
+        <script src="./scripts/common.js"></script>
+
+        <script type="text/javascript" src="https://unpkg.com/imagekit-javascript/dist/imagekit.min.js"></script>
+
+        <style>
+            .bmf-pt-dtls {
+                display: block;
+                padding: 1.5rem;
+            }
+            .bmf-pt-locate{
+                display: none;
+            }
+            #map {
+                height: 100%;
+            }
+
+            html,body {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            #document_upload {
+                padding: 11px;
+            }
+            .form-control{
+                width: 100%;
+                height: 45px;
+                font-size: 13px;
+                border-radius: 5px;
+                color: #777;
+                padding: 0 1em;
+                border: 1px solid #e0e0e0;
+            }
+            .form-control:focus{
+                border-color: #e0e0e0;
+            }
+            #bmf_address {
+                padding: 10px;
+            }
+            .img_display_box {
+                width: 42%;
+                position: relative;
+                display: inline-block;
+                margin: 15px;
+                border: 2px solid #e0e0e0;
+            }
+            .img_display_box .bmf-box-img{
+                width: 100%;
+                height: 150px;
+            }
+            .remove-icon {
+                position: absolute;
+                top: -15px;
+                right: -15px;
+                z-index: 9;
+            }
+            .remove-icon img {
+                width:27px;
+            }
+            .bmf-pt-locate {
+                padding: 12px;
+            }
+            .btn-primary, .btn-primary:focus, .btn-primary:active {
+                color: #fff;
+                background-color: #47bbec!important;
+                border-color: #47bbec!important;
+            }
+            .form-control:focus, .form-control {
+                outline: 0;
+                color: #777!important;
+                box-shadow: none!important;
+            }
+            #logout-icon {
+                width: 25px!important;
+            }
+        </style>
+
+        <script>
+            var user_id = localStorage.getItem("user_id");
+            if(!user_id){
+                window.location.href="index.html";
+            }
+            const api_key = common.api_key;
+            const id = localStorage.getItem("bmf_id");
+            var imagekit = new ImageKit({
+                publicKey: common.public_key,
+                urlEndpoint: common.end_point,
+                authenticationEndpoint: common.api_url+"signature"
+            });     
+            var images, bmf_pt_id, bmfImages, fileuploader = 0;
+
+            function initAutocomplete() {
+                var input = document.getElementById('bmf_address');
+                var autocomplete = new google.maps.places.Autocomplete(input);
+                autocomplete.setFields(['address_components', 'geometry', 'name']);
+                autocomplete.addListener('place_changed', function() {
+                    var place = autocomplete.getPlace();
+                    if (!place.geometry) {
+                        console.log("Returned place contains no geometry");
+                        return;
+                    }
+                    console.log(place.geometry.location.lat());
+                    console.log(place.geometry.location.lng());
+                    $("#lat").val(place.geometry.location.lat());
+                    $("#lng").val(place.geometry.location.lng());
+                });
+                getBmfDtls();
+            }
+
+            function getBmfDtls(){
+                $.ajax({
+                    type: 'GET',
+                    url: common.api_url+'point/admin/bmf/edit/'+id,
+                    success: function(resp){
+                        let obj = resp.data;
+                        $("#bmf_name").val(obj.bmf_name);
+                        $("#bmf_landmark").val(obj.bmf_landmark);
+                        $("#bmf_address").val(obj.bmf_address);
+                        $("#bmf_pr_name").val(obj.bmf_pr_name);
+                        $("#bmf_pr_number").val(obj.bmf_pr_number);
+                        $("#bmf_owner_name").val(obj.bmf_owner_name);
+                        $("#bmf_owner_number").val(obj.bmf_owner_number);
+                        $("#lat").val(obj.lat);
+                        $("#lng").val(obj.lng);
+                    }
+                })
+            }
+
+            function nextPage() {
+                let dataObj = {
+                    bmf_name: $("#bmf_name").val(),
+                    bmf_landmark: $("#bmf_landmark").val(),
+                    bmf_pr_name: $("#bmf_pr_name").val(),
+                    bmf_pr_number: $("#bmf_pr_number").val(),
+                    bmf_owner_name: $("#bmf_owner_name").val(),
+                    bmf_owner_number: $("#bmf_owner_number").val(),
+                    bmf_address: $("#bmf_address").val(),
+                    lat: $("#lat").val(),
+                    lng: $("#lng").val(),
+                    bmf_id: id
+                }
+                $.ajax({
+                    type: 'POST',
+                    url: common.api_url+'point/admin/bmf/update',
+                    contentType: 'application/json',
+                    data: JSON.stringify(dataObj),
+                    dataType: 'json',
+                    success: function(response) {
+                        if(response.code == 200){
+                            bmf_pt_id = response.result;
+                            $(".bmf-pt-dtls").hide();
+                            $(".bmf-pt-locate").show();
+                            docDisplay();
+                        }else{
+                            alert(response.message);
+                        }
+                    }
+                })
+            }
+
+            function docDisplay() {
+                $.ajax({
+                    type: 'GET',
+                    url: common.api_url+'point/admin/bmf/edit/doc/'+id,
+                    contentType: 'application/json',
+                    success: function(response){
+                        if(response.code == 200){
+                            for (var i = response.data.length-1; i>-1; i--){
+                                $("#doc_display").append(`<div class="img_display_box">
+                                    <img src="https://ik.imagekit.io/i80pdhj15/${response.data[i].docs}" alt="BMF Pts" class='bmf-box-img'>
+                                    <div class='remove-icon' onclick="deleteImg('doc', '${response.data[i].fileId}')">
+                                        <img src="./images/delete.svg" />
+                                    </div>
+                                </div>`);
+                            }
+                        } else {
+                            alert(response.message);
+                        }
+                        imageDisplay();
+                    }
+                })
+            }
+
+            function imageDisplay() {
+                $.ajax({
+                    type: 'GET',
+                    url: common.api_url+'point/admin/bmf/edit/image/'+id,
+                    contentType: 'application/json',
+                    success: function(response){
+                        if(response.code == 200){
+                            for (var i = response.data.length-1; i>-1; i--){
+                                $("#image_display").append(`<div class="img_display_box">
+                                    <img src="https://ik.imagekit.io/i80pdhj15/${response.data[i].images}" alt="BMF Pts" class='bmf-box-img'>
+                                    <div class='remove-icon' onclick="deleteImg('image', '${response.data[i].fileId}')">
+                                        <img src="./images/delete.svg" />
+                                    </div>
+                                </div>`);
+                            }
+                        } else {
+                            alert(response.message);
+                        }
+                    }
+                })
+            }
+
+            function selectImage(e) {
+                images = e.files;
+            }
+
+            function selectBMFImage(e) {
+                bmfImages = e.files;
+            }
+
+            function documentUpload(e){
+                $("#document_submit").addClass("btn-deactivate");
+                e.preventDefault();
+                var imgData = [], ext;
+                if(images) {
+                    for(var i=0; i< images.length; i++){
+                        ext = images[i].name.split('.').pop();
+                        imagekit.upload({
+                            file: images[i],
+                            fileName: "bmf_doc_"+bmf_pt_id+"_"+i+"."+ext,
+                            useUniqueFileName: false
+                        }, function (err, result) {
+                            if (err) {
+                                alert("Error in file upload. Check console logs for error response");
+                                console.log(err);
+                            } else {
+                                fileuploader++;
+                                if(fileuploader == images.length){
+                                    for(var i=0; i< images.length; i++){
+                                        let ext = images[i].name.split('.').pop()
+                                        imgData.push({
+                                            bmf_id: bmf_pt_id,
+                                            docs: "bmf_doc_"+bmf_pt_id+"_"+i+"."+ext,
+                                            added_by: "1",
+                                            status: "Y"
+                                        })
+                                    }
+                                    $.ajax({
+                                        type: 'POST',
+                                        url: common.api_url+'point/admin/bmf/addBMFDocs',
+                                        contentType: 'application/json',
+                                        data: JSON.stringify(imgData),
+                                        dataType: 'json',
+                                        success: function(response) {
+                                            alert("File uploaded. Check console logs for success response");
+                                            bmfImgUpload();
+                                            console.log(response);
+                                        },
+                                        error: function(res) {
+                                            $("#document_submit").removeClass("btn-deactivate");
+                                        }
+                                    })
+                                }
+                            }
+                        })
+                    }
+                } else {
+                    bmfImgUpload();
+                }
+            }
+
+            function bmfImgUpload(){
+                var imgData = [], ext; fileuploader = 0;
+                if(bmfImages){
+                    for(var i=0; i< bmfImages.length; i++){
+                        ext = bmfImages[i].name.split('.').pop();
+                        imagekit.upload({
+                            file: bmfImages[i],
+                            fileName: "bmf_img_"+bmf_pt_id+"_"+i+"."+ext,
+                            useUniqueFileName: false
+                        }, function (err, result) {
+                            if (err) {
+                                alert("Error in file upload. Check console logs for error response");
+                                console.log(err);
+                            } else {
+                                fileuploader++;
+                                if(fileuploader == bmfImages.length){
+                                    for(var i=0; i< bmfImages.length; i++){
+                                        let ext = bmfImages[i].name.split('.').pop()
+                                        imgData.push({
+                                            bmf_id: bmf_pt_id,
+                                            images: "bmf_img_"+bmf_pt_id+"_"+i+"."+ext,
+                                            added_by: "1",
+                                            status: "Y"
+                                        })
+                                    }
+                                    $.ajax({
+                                        type: 'POST',
+                                        url: common.api_url+'point/admin/bmf/addBMFImages',
+                                        contentType: 'application/json',
+                                        data: JSON.stringify(imgData),
+                                        dataType: 'json',
+                                        success: function(response) {
+                                            $("#document_submit").removeClass("btn-deactivate");
+                                            alert("File uploaded. Check console logs for success response");
+                                            console.log(response);
+                                            $(".bmf-pt-locate").hide();
+                                            $(".bmf-pt-dtls").show();
+                                        },
+                                        error: function(res) {
+                                            $("#document_submit").removeClass("btn-deactivate");
+                                        }
+                                    })
+                                }
+                            }
+                        })
+                    }
+                }
+            }
+
+            function deleteImg(type, file_id) {
+                let dataObj = {
+                    type: type,
+                    file_id: file_id
+                }
+                $.ajax({
+                    type: 'POST',
+                    url: common.api_url+'point/admin/bmf/delete',
+                    contentType: 'application/json',
+                    data: JSON.stringify(dataObj),
+                    dataType: 'json',
+                    success: function(response) {
+                        if(response.code == 200){
+                            alert(response.message);
+                            location.reload();
+                        }else{
+                            alert(response.message);
+                        }
+                    }
+                })
+            }
+
+            $(document).ready(function(){
+                initAutocomplete();
+            })
+        </script>
+    </head>
+    <body>
+        <div class='bmf-pt-dtls'>
+            <div class="form-group clearfix">
+                <a class='btn btn-primary float-right' href="bmfList.html"><- Back to the List</a>
+            </div>
+            <div class="form-group mt-3">
+                <label for="bmf_name">BMF Name</label>
+                <input type="text" class="form-control" id="bmf_name" name="bmf_name" />
+            </div>
+            <div class="form-group">
+                <label for="bmf_landmark">BMF Landmark</label>
+                <input type="text" class="form-control" id="bmf_landmark" name="bmf_landmark" />
+            </div>
+            <div class="form-group">
+                <label for="bmf_pr_name">BMF PR Name</label>
+                <input type="text" class="form-control" id="bmf_pr_name" name="bmf_pr_name" />
+            </div>
+            <div class="form-group">
+                <label for="bmf_pr_number">BMF PR Number</label>
+                <input type="text" class="form-control" id="bmf_pr_number" name="bmf_pr_number" />
+            </div>
+            <div class="form-group">
+                <label for="bmf_owner_name">BMF Owner Name</label>
+                <input type="text" class="form-control" id="bmf_owner_name" name="bmf_owner_name" />
+            </div>
+            <div class="form-group">
+                <label for="bmf_contact_number">BMF Owner Number</label>
+                <input type="text" class="form-control" id="bmf_owner_number" name="bmf_owner_number" />
+            </div>
+            <div class="form-group" style="position: relative;">
+                <label for="bmf_address">BMF Point Address Select</label>
+                <input id="bmf_address" name="bmf_address" class="form-control" type="text" placeholder="Autocomplete Widget">
+                <input type="hidden" id="lat" name="lat" />
+                <input type="hidden" id="lng" name="lng" />
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary w-100 p-2 mt-2" onclick="nextPage(event)">Next</button>
+            </div>
+        </div>
+        <div class='bmf-pt-locate'>
+            <form action="#" onsubmit="documentUpload(event)">
+                <div class="form-group">
+                    <label for="document_upload">Document Upload</label>
+                    <input type="file" class="form-control" name="document_upload" id="document_upload" onchange="selectImage(this)" multiple />
+                </div>
+                <div id="doc_display" class="img_display">
+
+                </div>
+                <div class="form-group">
+                    <label for="bmf_pt_upload">BMF Point Images Upload</label>
+                    <input type="file" class="form-control" name="bmf_pt_upload" id="bmf_pt_upload" onchange="selectBMFImage(this)" multiple />
+                </div>
+                <div id="image_display" class="img_display">
+
+                </div>
+                <div class="form-group">
+                    <label for="document_submit"> &nbsp; </label>
+                    <button class="btn btn-success w-100" id="document_submit">Submit Document</button>
+                </div>
+            </form>
+        </div>
+    </body>
+</html>

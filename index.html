@@ -1,0 +1,65 @@
+<html>
+    <head>
+        <title>BMF Login</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="icon" href="./images/favicon.png">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
+        <link rel="stylesheet" href="styles/common.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js"></script>
+        <script src="scripts/common.js"></script>
+
+        <style>
+            
+        </style>
+
+        <script>
+            function login() {
+                if(validation("login-box")){
+                    let dataObj = {
+                        email_id: $("#email_id").val(),
+                        password: $("#password").val()
+                    }
+                    $.ajax({
+                        type: 'POST',
+                        url: common.api_url+'user/bmf/login',
+                        contentType: 'application/json',
+                        data: JSON.stringify(dataObj),
+                        dataType: 'json',
+                        success: function(response) {
+                            if(response.code == 200){
+                                alert(response.message);
+                                localStorage.setItem("user_id", response.data.user_id);
+                                window.location.href = response.page;
+                            }else{
+                                alert(response.message);
+                            }
+                        }
+                    })
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div id="login-box" class='login-box-container'>
+            <div class="company-logo">
+                <img src="./images/logo.jpg" class="comapny-logo" />
+            </div>
+            <div class="form-group mt-3">
+                <label for="email_id">Email ID</label>
+                <input type="text" class="form-control required email" placeholder="Enter the Email ID" id="email_id" name="email_id" />
+                <span class="error-msg">Valid Email ID is required</span>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" class="form-control required text" placeholder="Enter the Password" id="password" name="password" />
+                <span class="error-msg">Password is required</span>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary w-100 p-2 mt-2" onclick="login()">Login</button>
+            </div>
+        </div>
+    </body>
+</html>
