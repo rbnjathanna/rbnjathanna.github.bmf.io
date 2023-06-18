@@ -70,9 +70,6 @@ html,body {
 #bmf-list .card .card-body h5 {
     font-size: 1.1rem;
 }
-#bmf-list .card .card-body p {
-    font-size: 0.8rem;
-}
 .bmf-list-action-btn button{
     font-size: 0.8rem;
 }
@@ -96,5 +93,27 @@ html,body {
     }
     #card-div .card {
         margin: 1rem 0 0 0;
+    }
+    #bmf-list .card .card-body p {
+        font-size: 0.8rem;
+    }
+}
+
+@media (min-width: 701px) {
+    #bmf-list .card .card-body p {
+        font-size: 0.7rem;
+        color: #444;
+        display: block;
+        display: -webkit-box!important;
+        max-width: 100%;
+        height: 40px;
+        line-height: 1.5;
+        margin: 0;
+        padding: 6px 0;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
     }
 }
