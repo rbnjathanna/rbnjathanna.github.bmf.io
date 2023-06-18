@@ -115,8 +115,6 @@ html,body {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: normal;
-    }
-    .bmf-list-action-btn {
-        margin-top: 17px;
+        margin-bottom: 17px;
     }
 }
