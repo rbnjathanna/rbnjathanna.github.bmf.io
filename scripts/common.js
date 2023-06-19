@@ -2,8 +2,8 @@ const common = {
     "api_key": "AIzaSyCex-4bQ2wYJnDV-258CN-Vs7twaUOin_c",
     "public_key": "public_5xMjjGHwTUyQ0kf5XE9af/oTrXE=",
     "end_point": "https://ik.imagekit.io/i80pdhj15",
-    //"api_url": "http://localhost:3000/"
-    "api_url": "https://api.bmf.net.in/"
+    "api_url": "http://localhost:3000/"
+    //"api_url": "https://api.bmf.net.in/"
 }
 
 const validation = (form_name) => {
